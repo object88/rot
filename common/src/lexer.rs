@@ -54,31 +54,50 @@ impl<'a> Iterator for LexerIntoIterator<'a> {
             return Some(Token::Assign{ position: start });
           },
 
-          // Consume the plus character and return an Assign token
-          '+' => {
+          '<' => {
             _ = self.itr.next();
-            return Some(Token::Plus{ position: start });
+            let x0 = self.itr.peek();
+            match x0 {
+              None => return Some(Token::Illegal),
+              Some(x0) => {
+                match x0.1.1 {
+                  '-' => {
+                    _ = self.itr.next();
+                    return Some(Token::From { position: start });
+                  },
+                  _ => {
+                    _ = self.itr.next();
+                    return Some(Token::Illegal);
+                  },
+                }
+              }
+            }
           },
 
           '(' => {
             _ = self.itr.next();
-            return Some(Token::LParen);
+            return Some(Token::LParen{ position: start });
           },
 
           ')' => {
             _ = self.itr.next();
-            return Some(Token::RParen)
+            return Some(Token::RParen{ position: start })
           },
 
           '{' => {
             _ = self.itr.next();
-            return Some(Token::LBrace)
+            return Some(Token::LBrace{ position: start })
           },
 
           '}' => {
             _ = self.itr.next();
-            return Some(Token::RBrace)
+            return Some(Token::RBrace{ position: start })
           },
+
+          ':' => {
+            _ = self.itr.next();
+            return Some(Token::Colon { position: start })
+          }
 
           ',' => {
             _ = self.itr.next();
@@ -150,7 +169,9 @@ fn ident_keyword_check<'a>(t: Token<'a>) -> Token<'a> {
   match t {
     Token::Ident { position, val } => {
       match val {
+        "fn" => Token::Function { position },
         "let" => Token::Let{ position },
+        "proto" => Token::Proto{ position },
         _ => t
       }
     }
@@ -160,21 +181,20 @@ fn ident_keyword_check<'a>(t: Token<'a>) -> Token<'a> {
 
 #[cfg(test)]
 mod tests {
-  use crate::{lexer, tokens};
+  use crate::{lexer, tokens::Token};
 
   #[test]
   fn test_next_token() {
-    let input = "=+(){},;";
+    let input = "=(){},;";
 
     let expected = vec![
-      tokens::Token::Assign{ position: 0 },
-      tokens::Token::Plus{ position: 1 },
-      tokens::Token::LParen,
-      tokens::Token::RParen,
-      tokens::Token::LBrace,
-      tokens::Token::RBrace,
-      tokens::Token::Comma,
-      tokens::Token::Semicolon
+      Token::Assign{ position: 0 },
+      Token::LParen{ position: 1 },
+      Token::RParen{ position: 2 },
+      Token::LBrace{ position: 3 },
+      Token::RBrace{ position: 4 },
+      Token::Comma,
+      Token::Semicolon
     ];
 
     let l = lexer::new(input);
@@ -187,16 +207,44 @@ mod tests {
     let input = "let five = 5;\nlet ten = 10;";
 
     let expected = vec![
-      tokens::Token::Let{ position: 0 },
-      tokens::Token::Ident{ position: 4, val: &"five" },
-      tokens::Token::Assign{ position: 9 },
-      tokens::Token::Int64 { position: 11, val: 5 },
-      tokens::Token::Semicolon,
-      tokens::Token::Let{ position: 14 },
-      tokens::Token::Ident{ position: 18, val: &"ten" },
-      tokens::Token::Assign{ position: 22 },
-      tokens::Token::Int64 { position: 24, val: 10 },
-      tokens::Token::Semicolon,
+      Token::Let{ position: 0 },
+      Token::Ident{ position: 4, val: &"five" },
+      Token::Assign{ position: 9 },
+      Token::Int64 { position: 11, val: 5 },
+      Token::Semicolon,
+      Token::Let{ position: 14 },
+      Token::Ident{ position: 18, val: &"ten" },
+      Token::Assign{ position: 22 },
+      Token::Int64 { position: 24, val: 10 },
+      Token::Semicolon,
+    ];
+
+    let l = lexer::new(input);
+
+    assert_eq!(expected, l.into_iter().collect::<Vec<_>>());
+  }
+
+  #[test]
+  fn test_proto() {
+    let input = "proto unary_math_expression: fn = (out: i64) <- (x: i64)";
+
+    let expected = vec![
+      Token::Proto{ position: 0 },
+      Token::Ident{ position: 6, val: "unary_math_expression" },
+      Token::Colon{ position: 27 },
+      Token::Function{ position: 29 },
+      Token::Assign { position: 32 },
+      Token::LParen{ position: 34 },
+      Token::Ident { position: 35, val: "out" },
+      Token::Colon { position: 38 },
+      Token::Ident { position: 40, val: "i64" },
+      Token::RParen { position: 43 },
+      Token::From { position: 45 },
+      Token::LParen{ position: 48 },
+      Token::Ident { position: 49, val: "x" },
+      Token::Colon { position: 50 },
+      Token::Ident { position: 52, val: "i64" },
+      Token::RParen { position: 55 },
     ];
 
     let l = lexer::new(input);

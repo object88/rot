@@ -1,6 +1,10 @@
-[package]
+[workspace]
+members = ["common"]
+resolver = "3"
+
+[workspace.package]
 name = "rot"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[workspace.dependencies]
