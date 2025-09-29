@@ -1,0 +1,13 @@
+[package]
+name = "repl"
+edition.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "repl"
+path = "src/bin/main.rs"
+
+[dependencies]
+common = { path = "../common" }
+
+[build-dependencies]
